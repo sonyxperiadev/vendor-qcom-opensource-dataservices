@@ -1,5 +1,5 @@
 /************************************************************************
-Copyright (c) 2015, The Linux Foundation. All rights reserved.
+Copyright (c) 2015-2016, The Linux Foundation. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -40,6 +40,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include "datatop_interface.h"
 #include "datatop_linked_list.h"
 #include "datatop_opt.h"
@@ -107,6 +108,40 @@ int dtop_check_writefile_access(char *fw)
 
 	if (!access(fw, W_OK)) {
 		printf("Permission to write to specified file denied\n");
+		return INVALID;
+	}
+
+	return VALID;
+}
+
+/**
+ * @brief Checks for the presence of a dir.
+ *
+ * @param fw Dir to check the presence
+ * @return INVALID - Out dir doesn't exist.
+ * @return VALID - Out dir exist and can be written to.
+ */
+int dtop_check_out_dir_presence(char *fw)
+{
+	if (access(fw, F_OK)) {
+		printf("Out dir not present\n");
+		return INVALID;
+	}
+
+	return VALID;
+}
+
+/**
+ * @brief Creates a directory
+ *
+ * @param New directory full path.
+ * @return INVALID - Out dir doesn't exist or write access denied.
+ * @return VALID - Out dir exist and can be written to.
+ */
+int dtop_create_dir(char *full_path)
+{
+	if (!mkdir(full_path, 0755)) {
+		printf("Unable to create dir: %s, errno: %d\n", full_path, errno);
 		return INVALID;
 	}
 

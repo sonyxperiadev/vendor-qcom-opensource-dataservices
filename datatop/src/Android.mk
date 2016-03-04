@@ -17,6 +17,7 @@ LOCAL_SRC_FILES += datatop_stat_poll.c
 LOCAL_SRC_FILES += datatop_str.c
 LOCAL_SRC_FILES += datatop_sys_snap.c
 LOCAL_SRC_FILES += datatop_value_only_poll.c
+LOCAL_SRC_FILES += datatop_ip_table_poll.c
 
 LOCAL_CFLAGS := -Wall -Wextra -Werror -pedantic -std=c99
 LOCAL_CFLAGS += -DVERSION="\"1.0.4"\"

@@ -1,5 +1,5 @@
 /************************************************************************
-Copyright (c) 2015, The Linux Foundation. All rights reserved.
+Copyright (c) 2015-2016, The Linux Foundation. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -49,6 +49,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define VALID 0
 #define INVALID -1
 #define DEFAULT_NICE 19               /* Lowest priority */
+#define OUT_DIR_LEN_MAX       150
 
 /**
  * @struct cli_opts
@@ -74,6 +75,8 @@ struct cli_opts {
 	int cli_help;                   /* -h option */
 	char *file_name;                /* -w option */
 	char *snapshot_file;            /* -s option */
+	int iptables_rules_routes;      /* -r option */
+	char out_dir[OUT_DIR_LEN_MAX];  /* -o option */
 	int print_csv;
 	int poll_time_selected;
 	int priority;                   /* -n option (niceness) */
