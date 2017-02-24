@@ -2,7 +2,7 @@
 
 			R M N E T C L I . C
 
-Copyright (c) 2013-2015, The Linux Foundation. All rights reserved.
+Copyright (c) 2013-2015, 2017 The Linux Foundation. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -187,6 +187,13 @@ static void rmnet_api_usage(void)
 	printf(_5TABS" must be less than");
 	printf(_5TABS" 15 chars. Returns");
 	printf(_5TABS" the status code\n\n");
+	printf("rmnetcli newvndname <dev_id> <name_prefix>   Creates");
+	printf(_5TABS" virtual network device node.");
+	printf(_5TABS" dev_id is an int");
+	printf(_5TABS" less than 32. Name");
+	printf(_5TABS" must be less than");
+	printf(_5TABS" 15 chars. Returns");
+	printf(_5TABS" the status code\n\n");
 	printf("rmnetcli getvndname <dev_id>              Get name of");
 	printf(_5TABS" network device node from id\n\n");
 	printf("rmnetcli freevnd <dev_id>              Removes virtual");
@@ -311,6 +318,11 @@ static int rmnet_api_call(int argc, char *argv[])
 		_RMNETCLI_CHECKNULL(argv[2]);
 		return_code = rmnet_new_vnd_prefix(handle,
 		_STRTOUI32(argv[1]), &error_number, RMNETCTL_NEW_VND, argv[2]);
+	} else if (!strcmp(*argv, "newvndname")) {
+		_RMNETCLI_CHECKNULL(argv[1]);
+		_RMNETCLI_CHECKNULL(argv[2]);
+		return_code = rmnet_new_vnd_name(handle,
+		_STRTOUI32(argv[1]), &error_number, argv[2]);
 	} else if (!strcmp(*argv, "newvnd")) {
 		_RMNETCLI_CHECKNULL(argv[1]);
 		return_code = rmnet_new_vnd(handle,
