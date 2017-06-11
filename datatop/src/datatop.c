@@ -200,7 +200,7 @@ int main(int argc, char **argv)
 	}
 
 	if (usr_cl_opts.iptables_rules_routes == OPT_CHOSE) {
-		if (!usr_cl_opts.out_dir) {
+		if (!strlen(usr_cl_opts.out_dir)) {
 			printf("Please provide an out directory.\n");
 			exit(EXIT_FAILURE);
 		}
