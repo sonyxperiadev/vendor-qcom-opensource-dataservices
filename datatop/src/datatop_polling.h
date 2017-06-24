@@ -1,5 +1,5 @@
 /************************************************************************
-Copyright (c) 2015, The Linux Foundation. All rights reserved.
+Copyright (c) 2015-2016, The Linux Foundation. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,6 +41,8 @@ void dtop_value_only_init(char *name);
 void dtop_meminfo_init(void);
 void dtop_dev_init(void);
 void dtop_stat_init(void);
+void dtop_ip_table_init(char *out_dir);
+void *dtop_ip_table_start_poll(void * arg);
 void dtop_cpu_stats_init(void);
 int dtop_value_only_poll(struct dtop_data_point_gatherer *dpg);
 void dtop_value_only_dpg_deconstructor

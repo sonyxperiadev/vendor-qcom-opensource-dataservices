@@ -1,5 +1,5 @@
 /************************************************************************
-Copyright (c) 2015, The Linux Foundation. All rights reserved.
+Copyright (c) 2015-2016, The Linux Foundation. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -42,6 +42,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int dt_read_file(const char *file, char **buffer, int len);
 void dt_free(char **buffer);
 int dtop_check_writefile_access(char *fw);
+int dtop_check_out_dir_presence(char *fw);
+int dtop_create_dir(char *full_path);
 int dtop_open_writing_file(char *fw, FILE **to_file);
 void dtop_close_file(FILE *fw);
 int dtop_get_file_line_amount(char *file);

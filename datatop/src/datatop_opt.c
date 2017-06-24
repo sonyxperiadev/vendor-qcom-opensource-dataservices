@@ -1,5 +1,5 @@
 /************************************************************************
-Copyright (c) 2015, The Linux Foundation. All rights reserved.
+Copyright (c) 2015-2016, The Linux Foundation. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include <ctype.h>
 #include <getopt.h>
+#include <time.h>
 #include "datatop_opt.h"
 #include "datatop_interface.h"
 #include "datatop_linked_list.h"
@@ -72,13 +73,20 @@ void dtop_load_default_options(struct cli_opts *clopts)
 int dtop_parse_cli_opts(struct cli_opts *clopts, int argc, char **argv)
 {
 	int option;
+	time_t rawtime;
+	struct tm * timeinfo;
+	char timestamp[100];
+
+	time ( &rawtime );
+	timeinfo = gmtime ( &rawtime );
+	strftime (timestamp, 100,"%F_%H-%M-%S",timeinfo);
 
 	if (!clopts || !*argv) {
 		printf("Internal Error: Null Pointer\n");
 		goto error;
 	}
 
-	while ((option = getopt(argc, argv, "phi:t:w:s:n:")) != -1) {
+	while ((option = getopt(argc, argv, "phri:t:w:o:s:n:")) != -1) {
 		switch (option) {
 		case 'p':
 			clopts->print_cl = OPT_CHOSE;
@@ -126,11 +134,32 @@ int dtop_parse_cli_opts(struct cli_opts *clopts, int argc, char **argv)
 			}
 		break;
 
+		case 'o':
+			if (dtop_check_out_dir_presence(optarg) != VALID) {
+				goto error;
+			}
+
+			if(strlen(optarg) + strlen(timestamp) > OUT_DIR_LEN_MAX) {
+				printf("Out dir too long!");
+				goto error;
+			}
+			strcpy(clopts->out_dir, optarg);
+			strcat(clopts->out_dir, "/");
+			strcat(clopts->out_dir, timestamp);
+			if(dtop_create_dir(clopts->out_dir) != INVALID) {
+				goto error;
+			}
+		break;
+
 		case 's':
 			if (dtop_check_writefile_access(optarg) == VALID)
 				clopts->snapshot_file = optarg;
 			else
 				goto error;
+		break;
+
+		case 'r':
+			clopts->iptables_rules_routes = OPT_CHOSE;
 		break;
 
 		case '?':
@@ -167,6 +196,8 @@ void dtop_print_help_opts(void)
 	printf("\t-w , file name (.csv)\tWrite output to a file\n");
 	printf("\t-s , file name\t\tPrint system snapshot to a file\n");
 	printf("\t-n , nice value\t\tSet niceness (default 19)\n");
+	printf("\t-r , \t\t\tCapture IPTables, Rules and Routes\n");
+	printf("\t-o , out directory for -w options\t\tOut dir where the set of files are saved\n");
 	printf("\t-h\t\t\tGet help\n");
 }
 

@@ -20,3 +20,4 @@ datatop_SOURCES += datatop_linked_list.c
 datatop_SOURCES += datatop_opt.c
 datatop_SOURCES += datatop_gen_poll.c
 datatop_SOURCES += datatop_sys_snap.c
+datatop_SOURCES += datatop_ip_table_poll.c

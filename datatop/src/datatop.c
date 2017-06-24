@@ -1,5 +1,5 @@
 /************************************************************************
-Copyright (c) 2015, The Linux Foundation. All rights reserved.
+Copyright (c) 2015-2016, The Linux Foundation. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -46,6 +46,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <errno.h>
 #include <time.h>
+#include <pthread.h>
 #include "datatop_interface.h"
 #include "datatop_linked_list.h"
 #include "datatop_opt.h"
@@ -175,6 +176,7 @@ static void dtop_set_niceness(int niceness)
 int main(int argc, char **argv)
 {
 	int parse_status;
+	pthread_t tid;
 	printf("DataTop - Version %s\n", VERSION);
 	printf("(c)2014-2015 Linux Foundation\n");
 
@@ -197,6 +199,13 @@ int main(int argc, char **argv)
 	break;
 	}
 
+	if (usr_cl_opts.iptables_rules_routes == OPT_CHOSE) {
+		if (!strlen(usr_cl_opts.out_dir)) {
+			printf("Please provide an out directory.\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+
 	dtop_dual_line_init("/proc/net/netstat");
 	dtop_dual_line_init("/proc/net/snmp");
 	dtop_single_line_init("/proc/net/snmp6");
@@ -212,6 +221,14 @@ int main(int argc, char **argv)
 	dtop_gen_init("/sys/kernel/debug/clk/bimc_clk/");
 	dtop_gen_init("/sys/kernel/debug/clk/snoc_clk/");
 	dtop_gen_init("/sys/kernel/debug/clk/pnoc_clk/");
+
+	if (usr_cl_opts.iptables_rules_routes == OPT_CHOSE) {
+		printf("Datatop IP Tables, rules, routes\n");
+		dtop_ip_table_init(usr_cl_opts.out_dir);
+		if(0 != pthread_create(&tid, NULL, &dtop_ip_table_start_poll, NULL)) {
+			printf("Unable to create capture_ip_tables_rules_routes thread\n");
+		}
+	}
 
 	if (usr_cl_opts.print_cl == OPT_CHOSE) {
 		dtop_poll(first_dpg_list);
