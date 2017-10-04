@@ -13,5 +13,6 @@ endif
 LOCAL_CLANG := true
 LOCAL_MODULE := sockev
 LOCAL_MODULE_TAGS := optional
+LOCAL_PROPRIETARY_MODULE := true
 
 include $(BUILD_EXECUTABLE)
