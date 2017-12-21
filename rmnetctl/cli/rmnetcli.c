@@ -2,7 +2,7 @@
 
 			R M N E T C L I . C
 
-Copyright (c) 2013-2015, 2017 The Linux Foundation. All rights reserved.
+Copyright (c) 2013-2015, 2017-2018 The Linux Foundation. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -208,6 +208,21 @@ static void rmnet_api_usage(void)
 	printf(_2TABS" <mdm_flow_hndl>         handle - tc flow handle");
 	printf(_2TABS" <tc_flow_hndl>          mapping for a virtual network");
 	printf(_2TABS" device node\n\n");
+	printf("**************************\n");
+	printf("RmNet RTM_NETLINK API Usage:\n\n");
+	printf("rmnetcli -n newlink  <dev_id>            Add a vnd w/ newlink");
+	printf(_2TABS" <vnd>                   string - vnd device_name");
+	printf(_2TABS" <vnd id>                int - new vnd id");
+	printf(_2TABS" [flags]                 int - starting flag config\n\n");
+	printf("rmnetcli -n changelink  <dev_id>         Change a vnd's flags");
+	printf(_2TABS" <vnd>                   string - vnd device_name");
+	printf(_2TABS" <vnd id>                int - new vnd id");
+	printf(_2TABS" <flags>                 int - new flag config\n\n");
+	printf("rmnetcli -n dellink <dev_name>           Delete a vnd");
+	printf(_2TABS"                         by inputting dev name\n\n");
+	printf("rmnetcli -n bridgelink  <dev_name>       Bridge a vnd and a dev");
+	printf(_2TABS" <vnd id>                by specifying dev id and vnd id\n\n");
+
 }
 
 static void print_rmnetctl_lib_errors(uint16_t error_number)
@@ -239,8 +254,11 @@ static void print_rmnet_api_status(int return_code, uint16_t error_number)
 	else if (return_code == RMNETCTL_LIB_ERR) {
 		printf("LIBRARY ");
 		print_rmnetctl_lib_errors(error_number);
-	} else if (return_code == RMNETCTL_KERNEL_ERR)
-		printf("KERNEL %s", rmnetctl_error_code_text[error_number]);
+	} else if (return_code == RMNETCTL_KERNEL_ERR) {
+		if (error_number < RMNETCTL_API_ERR_ENUM_LENGTH)
+			printf("KERNEL ERROR: System or rmnet error %d\n",
+			       error_number);
+	}
 	else if (return_code == RMNETCTL_INVALID_ARG)
 		printf("INVALID_ARG\n");
 }
@@ -275,10 +293,66 @@ static int rmnet_api_call(int argc, char *argv[])
 		RMNETCTL_CFG_SUCCESS_HELP_COMMAND);
 		return RMNETCTL_LIB_ERR;
 	}
-	return_code = rmnetctl_init(&handle, &error_number);
-	if (return_code!= RMNETCTL_SUCCESS) {
-		print_rmnet_api_status(return_code, error_number);
-		return RMNETCTL_LIB_ERR;
+
+	if (!strcmp(*argv, "-n")) {
+		return_code = rtrmnet_ctl_init(&handle, &error_number);
+		if (return_code != RMNETCTL_SUCCESS) {
+			print_rmnet_api_status(return_code, error_number);
+			return RMNETCTL_LIB_ERR;
+		}
+		error_number = RMNETCTL_CFG_FAILURE_NO_COMMAND;
+		return_code = RMNETCTL_LIB_ERR;
+		argv++;
+		argc--;
+		if ((!argc) || (!*argv)) {
+			print_rmnet_api_status(RMNETCTL_LIB_ERR,
+			RMNETCTL_CFG_FAILURE_NO_COMMAND);
+			return RMNETCTL_LIB_ERR;
+		}
+		if (!strcmp(*argv, "newlink")) {
+			_RMNETCLI_CHECKNULL(argv[1]);
+			_RMNETCLI_CHECKNULL(argv[2]);
+			_RMNETCLI_CHECKNULL(argv[3]);
+			uint32_t flags = 0;
+			/* If optional flag was used pass it on*/
+			if (argv[4])
+				flags = _STRTOI32(argv[4]);
+
+			return_code = rtrmnet_ctl_newvnd(handle, argv[1],
+							 argv[2],
+							 &error_number,
+							 _STRTOI32(argv[3]),
+							 flags);
+		} else if (!strcmp(*argv, "changelink")) {
+			_RMNETCLI_CHECKNULL(argv[1]);
+			_RMNETCLI_CHECKNULL(argv[2]);
+			_RMNETCLI_CHECKNULL(argv[3]);
+			_RMNETCLI_CHECKNULL(argv[4]);
+
+			return_code = rtrmnet_ctl_changevnd(handle, argv[1],
+							    argv[2],
+							    &error_number,
+							    _STRTOI32(argv[3]),
+							    _STRTOI32(argv[4]));
+		} else if (!strcmp(*argv, "dellink")) {
+			_RMNETCLI_CHECKNULL(argv[1]);
+				return_code = rtrmnet_ctl_delvnd(handle, argv[1],
+								 &error_number);
+		} else if (!strcmp(*argv, "bridge")) {
+			_RMNETCLI_CHECKNULL(argv[1]);
+			_RMNETCLI_CHECKNULL(argv[2]);
+			return_code = rtrmnet_ctl_bridgevnd(handle, argv[1],
+							    argv[2],
+							    &error_number);
+		}
+		goto end;
+	} else {
+		return_code = rmnetctl_init(&handle, &error_number);
+		if (return_code != RMNETCTL_SUCCESS) {
+			print_rmnet_api_status(return_code, error_number);
+			return RMNETCTL_LIB_ERR;
+		}
+
 	}
 	error_number = RMNETCTL_CFG_FAILURE_NO_COMMAND;
 	return_code = RMNETCTL_LIB_ERR;
@@ -400,8 +474,10 @@ static int rmnet_api_call(int argc, char *argv[])
 		return_code = rmnet_unset_logical_ep_config(handle,
 		_STRTOI32(argv[1]), argv[2], &error_number);
 	}
+end:
 	print_rmnet_api_status(return_code, error_number);
 	rmnetctl_cleanup(handle);
+	rtrmnet_ctl_deinit(handle);
 	return return_code;
 }
 
