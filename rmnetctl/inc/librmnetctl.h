@@ -39,6 +39,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef LIBRMNETCTL_H
 #define LIBRMNETCTL_H
 
+/* RMNET API failed to copy*/
+#define RMNETCTL_LIB_COPY_FAILED -1
 /* RMNET API succeeded */
 #define RMNETCTL_SUCCESS 0
 /* RMNET API encountered an error while executing within the library. Check the
