@@ -89,7 +89,7 @@ static void dt_dev_parse(char *line1, int len1,
 		if (line1[j] != '	' && line1[j] != ' ') {
 			dict->val[k] = &line1[j];
 			n = j;
-			while (line1[n] != '	' && line1[n] != ' ')
+			while (line1[n] != 0 && line1[n] != '	' && line1[n] != ' ')
 				n++;
 			if (n < len1)
 				line1[n] = 0;

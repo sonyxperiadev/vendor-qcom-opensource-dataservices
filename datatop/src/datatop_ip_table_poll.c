@@ -195,6 +195,8 @@ void *dtop_ip_table_start_poll(__attribute__((__unused__)) void *arg)
   double diff_t = 9999999.00; /* some high # > DTOP_IPTRR_POLL_PERIOD */
   int ret = DTOP_POLL_OK;
 
+  (void) arg;
+
   if (pthread_mutex_init(&dtop_ip_table_lock, NULL) != 0)
   {
       printf("\n mutex init failed\n");
