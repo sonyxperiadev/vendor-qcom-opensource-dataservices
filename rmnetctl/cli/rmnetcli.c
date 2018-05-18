@@ -222,6 +222,31 @@ static void rmnet_api_usage(void)
 	printf(_2TABS"                         by inputting dev name\n\n");
 	printf("rmnetcli -n bridgelink  <dev_name>       Bridge a vnd and a dev");
 	printf(_2TABS" <vnd id>                by specifying dev id and vnd id\n\n");
+	printf("rmnetcli -n flowactivate <real dev>  activate a flow\n");
+	printf(_2TABS" <vnd_name>              string - vnd device name\n\n");
+	printf(_2TABS" <bearer_id>             int - bearer id\n\n");
+	printf(_2TABS" <flow id>               int - flow id\n\n");
+	printf(_2TABS" <ip type>               int - ip type\n\n");
+	printf(_2TABS" <handle>                int - flow handle\n\n");
+	printf("rmnetcli -n flowdel      <real dev> delete a flow\n");
+	printf(_2TABS" <vnd_name>              string - vnd device name\n\n");
+	printf(_2TABS" <bearer_id>              int - bearer id\n\n");
+	printf(_2TABS" <flow id>               int - flow id\n\n");
+	printf(_2TABS" <ip type>               int - ip type\n\n");
+	printf("rmnetcli -n flowcontrol  <real dev>");
+	printf(_2TABS" <vnd_name>              string - vnd device name\n\n");
+	printf(_2TABS" <bearer_id>             int - bearer id\n\n");
+	printf(_2TABS" <seq>                   int - sequence\n\n");
+	printf(_2TABS" <grant size>            int - grant size\n\n");
+	printf(_2TABS" <ack>                   int - ack\n\n");
+	printf("rmnetcli -n systemup      <real dev>\n");
+	printf(_2TABS" <vnd_name>              string - vnd device name\n\n");
+	printf(_2TABS" <instance>              int - bearer id\n\n");
+	printf(_2TABS" <eptype>                int - ep type\n\n");
+	printf(_2TABS" <iface_id>              int - iface id\n\n");
+	printf(_2TABS" <flags>                 int - flags\n\n");
+	printf("rmnetcli -n systemdown    <real dev> <vnd name> <instance>\n\n ");
+
 
 }
 
@@ -345,6 +370,72 @@ static int rmnet_api_call(int argc, char *argv[])
 							    argv[2],
 							    &error_number);
 		}
+		else if (!strcmp(*argv, "flowactivate")) {
+			_RMNETCLI_CHECKNULL(argv[1]);
+			_RMNETCLI_CHECKNULL(argv[2]);
+			_RMNETCLI_CHECKNULL(argv[3]);
+			_RMNETCLI_CHECKNULL(argv[4]);
+			_RMNETCLI_CHECKNULL(argv[5]);
+
+			return_code = rtrmnet_activate_flow(handle, argv[1], argv[2],
+							    _STRTOUI8(argv[3]),
+							    _STRTOI32(argv[4]),
+							    _STRTOUI32(argv[5]),
+							    _STRTOUI32(argv[6]),
+							    &error_number);
+
+		} else if (!strcmp(*argv, "flowdel")) {
+			_RMNETCLI_CHECKNULL(argv[1]);
+			_RMNETCLI_CHECKNULL(argv[2]);
+			_RMNETCLI_CHECKNULL(argv[3]);
+			_RMNETCLI_CHECKNULL(argv[4]);
+			_RMNETCLI_CHECKNULL(argv[5]);
+			return_code = rtrmnet_delete_flow(handle, argv[1], argv[2],
+							_STRTOUI8(argv[3]),
+							_STRTOUI32(argv[4]),
+							_STRTOI32(argv[5]),
+							&error_number);
+		} else if (!strcmp(*argv, "flowcontrol")) {
+			_RMNETCLI_CHECKNULL(argv[1]);
+			_RMNETCLI_CHECKNULL(argv[2]);
+			_RMNETCLI_CHECKNULL(argv[3]);
+			_RMNETCLI_CHECKNULL(argv[4]);
+			_RMNETCLI_CHECKNULL(argv[5]);
+			_RMNETCLI_CHECKNULL(argv[6]);
+
+
+			return_code = rtrmnet_control_flow(handle, argv[1], argv[2],
+							    _STRTOUI8(argv[3]),
+							    _STRTOUI32(argv[4]),
+							    _STRTOUI16(argv[5]),
+							    _STRTOUI8(argv[6]),
+							    &error_number);
+		} else if (!strcmp(*argv, "systemup")) {
+			_RMNETCLI_CHECKNULL(argv[1]);
+			_RMNETCLI_CHECKNULL(argv[2]);
+			_RMNETCLI_CHECKNULL(argv[3]);
+			_RMNETCLI_CHECKNULL(argv[4]);
+			_RMNETCLI_CHECKNULL(argv[5]);
+			_RMNETCLI_CHECKNULL(argv[6]);
+
+
+			return_code = rtrmnet_flow_state_up(handle, argv[1], argv[2],
+							    _STRTOUI32(argv[3]),
+							    _STRTOUI32(argv[4]),
+							    _STRTOUI32(argv[5]),
+							    _STRTOUI32(argv[6]),
+							    &error_number);
+		} else if (!strcmp(*argv, "systemdown")) {
+			_RMNETCLI_CHECKNULL(argv[1]);
+			_RMNETCLI_CHECKNULL(argv[2]);
+			_RMNETCLI_CHECKNULL(argv[3]);
+
+			return_code = rtrmnet_flow_state_down(handle, argv[1], argv[2],
+							    _STRTOUI32(argv[3]),
+							    &error_number);
+		}
+
+
 		goto end;
 	} else {
 		return_code = rmnetctl_init(&handle, &error_number);
