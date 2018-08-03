@@ -108,9 +108,9 @@ int dtop_parse_cli_opts(struct cli_opts *clopts, int argc, char **argv)
 
 		case 'i':
 			clopts->poll_per = strtol(optarg, 0, 10);
-			if (clopts->poll_per <= 0) {
+			if (clopts->poll_per < 200000) {
 				printf("Argument for -i is not valid. ");
-				printf("Must be positive integer.\n");
+				printf("Must be atleast 200000\n");
 				goto error;
 			}
 		break;
@@ -191,7 +191,7 @@ void dtop_print_help_opts(void)
 {
 	printf("The following datatop commands are:\n");
 	printf("\t-p\t\t\tPrint output to terminal\n");
-	printf("\t-i , seconds\t\tSpecify polling period\n");
+	printf("\t-i , u-seconds\t\tSpecify polling period \n");
 	printf("\t-t , seconds\t\tSpecify polling duration\n");
 	printf("\t-w , file name (.csv)\tWrite output to a file\n");
 	printf("\t-s , file name\t\tPrint system snapshot to a file\n");

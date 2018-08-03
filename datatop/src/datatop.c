@@ -54,6 +54,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "datatop_polling.h"
 #include "datatop_gen_poll.h"
 
+
+#define DTOP_SEC_TO_USEC(x) ((x)*1000000)
+#define DTOP_USEC_TO_SEC(x) ((x)/1000000)
 struct dtop_linked_list *first_dpg_list;
 struct cli_opts usr_cl_opts;
 
@@ -99,8 +102,8 @@ int dtop_poll_periodically(struct dtop_linked_list *dpg_list, FILE *fw)
 	struct timeval ftime, itime, polltime;
 
 	gettimeofday(&tv, NULL);
-	curtime = tv.tv_sec;
-	endtime = tv.tv_sec + usr_cl_opts.poll_time;
+	curtime = DTOP_SEC_TO_USEC(tv.tv_sec)+tv.tv_usec;
+	endtime = DTOP_SEC_TO_USEC(tv.tv_sec)+ DTOP_SEC_TO_USEC(usr_cl_opts.poll_time);
 
 	/* print all of our datapoint names as column headers in csv format */
 	if (fprintf(fw, "\"Time\",") < 0)
@@ -122,8 +125,8 @@ int dtop_poll_periodically(struct dtop_linked_list *dpg_list, FILE *fw)
 		|| usr_cl_opts.poll_time == POLL_NOT_SPECIFIED) {
 		FD_ZERO(&rfds);
 		FD_SET(0, &rfds);
-		timeout.tv_sec = usr_cl_opts.poll_per;
-		timeout.tv_usec = 0;
+		timeout.tv_sec = DTOP_USEC_TO_SEC(usr_cl_opts.poll_per);
+		timeout.tv_usec = (usr_cl_opts.poll_per%1000000);
 		//ftime is right before timeout calculations for most acurate calculations
 		gettimeofday(&ftime, NULL);
 		timersub(&ftime, &itime, &polltime);
@@ -146,13 +149,13 @@ int dtop_poll_periodically(struct dtop_linked_list *dpg_list, FILE *fw)
 				dtop_print_snapshot_diff(first_dpg_list);
 		}
 		gettimeofday(&tv, NULL);
-		curtime = tv.tv_sec;
+		curtime = DTOP_SEC_TO_USEC(tv.tv_sec)+tv.tv_usec;
 		dtop_poll(dpg_list);
-		printf("Polled at %ld.%06ld\n", tv.tv_sec, tv.tv_usec);
 		if (dtop_print_time_at_poll(fw) == FILE_ERROR)
 			return FILE_ERROR;
 		if (dtop_write_pollingdata_csv(dpg_list, fw) == FILE_ERROR)
-			return FILE_ERROR;
+		        return FILE_ERROR;
+		        
 	}
 
 	if (quit != QUIT)
@@ -210,6 +213,9 @@ int main(int argc, char **argv)
 	dtop_dual_line_init("/proc/net/snmp");
 	dtop_single_line_init("/proc/net/snmp6");
 	dtop_gen_init("/proc/sys/net/");
+	dtop_gen_init("/sys/module/rmnet/parameters/");
+	dtop_gen_init("/sys/module/rmnet_perf/parameters/");
+	dtop_gen_init("/sys/module/rmnet_shs/parameters/");
 	dtop_gen_init("/sys/module/rmnet_data/parameters/");
 	dtop_gen_init("/sys/class/net/rmnet_mhi0/statistics/");
 	dtop_gen_init("/sys/class/net/usb_rmnet0/statistics/");
