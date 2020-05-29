@@ -9,14 +9,15 @@ ifneq ($(TARGET_DISABLE_RMNT),true)
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
-LOCAL_COPY_HEADERS_TO   := dataservices/rmnetctl
-LOCAL_COPY_HEADERS      := ../inc/librmnetctl.h
 
 LOCAL_SRC_FILES := librmnetctl.c
 LOCAL_CFLAGS := -Wall -Werror
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../inc
 LOCAL_C_INCLUDES += $(LOCAL_PATH)
+
+# To export librmnetctl.h to proprietary parts
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/inc
 
 ifeq ($(call is-vendor-board-platform,QCOM),true)
 ifeq ($(TARGET_COMPILE_WITH_MSM_KERNEL),true)
