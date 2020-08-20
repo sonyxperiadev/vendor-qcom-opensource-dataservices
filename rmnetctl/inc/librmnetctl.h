@@ -2,7 +2,8 @@
 
 			  L I B R M N E T C T L . H
 
-Copyright (c) 2013-2015, 2017-2019 The Linux Foundation. All rights reserved.
+Copyright (c) 2013-2015, 2017-2019, 2021 The Linux Foundation.
+All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -172,6 +173,27 @@ char rmnetctl_error_code_text
 	"ERROR: TC handle is full\n",
 	/* New Rmnet Driver Errors */
 	"ERROR: Netlink message is too small to hold all data\n",
+};
+
+#define RMNETCTL_LL_MASK_ACK 1
+#define RMNETCTL_LL_MASK_RETRY 2
+
+enum rmnetctl_ll_status_e {
+	LL_STATUS_ERROR = 0,
+	LL_STATUS_SUCCESS = 1,
+	LL_STATUS_DEFAULT = 2,
+	LL_STATUS_LL = 3,
+	LL_STATUS_TEMP_FAIL = 4,
+	LL_STATUS_PERM_FAIL = 5,
+	LL_STATUS_NO_EFFECT = 0xFD,
+	LL_STATUS_TIMEOUT = 0xFE
+};
+
+struct rmnetctl_ll_ack
+{
+	uint8_t bearer_id;
+	uint8_t status_code;
+	uint8_t current_ch;
 };
 
 /*===========================================================================
@@ -714,6 +736,21 @@ int rtrmnet_set_wda_freq(rmnetctl_hndl_t *hndl,
 			 char *vndname,
 			 uint32_t freq,
 			 uint16_t *error_code);
+
+int rtrmnet_change_bearer_channel(rmnetctl_hndl_t *hndl,
+				  char *devname,
+				  char *vndname,
+				  uint8_t switch_type,
+				  uint32_t flags,
+				  uint8_t num_bearers,
+				  uint8_t *bearers,
+				  uint16_t *error_code);
+
+int rtrmnet_get_ll_ack(rmnetctl_hndl_t *hndl,
+		       struct rmnetctl_ll_ack *ll_ack,
+		       uint16_t *error_code);
+
+const char *rtrmnet_ll_status_to_text(uint8_t status);
 
 #endif /* not defined LIBRMNETCTL_H */
 

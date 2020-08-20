@@ -2,7 +2,7 @@
 
 			R M N E T C L I . C
 
-Copyright (c) 2013-2015, 2017-2020 The Linux Foundation. All rights reserved.
+Copyright (c) 2013-2015, 2017-2021 The Linux Foundation. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -259,7 +259,11 @@ static void rmnet_api_usage(void)
 	printf("rmnetcli -n wdafreq       <real dev> set powersave poll freq\n\n");
 	printf(_2TABS" <vnd_name>              string - vnd device name\n\n");
 	printf(_2TABS" <freq>                  int - frequency\n\n");
-
+	printf("rmnetcli -n channelswitch  <real dev> change underlying transport channel for bearers");
+	printf(_2TABS" <vnd_name>              string - vnd device name");
+	printf(_2TABS" <switch type>           =0: from LL, !=0: to LL");
+	printf(_2TABS" <flags>                 masks. 1: wait for completion");
+	printf(_2TABS" <bearer id list>        int - list of bearer ids to switch\n");
 }
 
 static void print_rmnetctl_lib_errors(uint16_t error_number)
@@ -298,6 +302,38 @@ static void print_rmnet_api_status(int return_code, uint16_t error_number)
 	}
 	else if (return_code == RMNETCTL_INVALID_ARG)
 		printf("INVALID_ARG\n");
+}
+
+/*!
+* @brief Wait for rmnet LL switch status
+* @details Waits and displays LL switch status
+* @param num_bearers Number of bearers to wait for
+* @return RMNETCTL_SUCCESS if successful.
+*/
+static int rmnet_ll_wait_status(rmnetctl_hndl_t *hndl,
+				uint8_t num_bearers,
+				uint16_t *error_number)
+{
+	struct rmnetctl_ll_ack ll_ack;
+	int return_code = RMNETCTL_SUCCESS;
+
+	printf("LL switch initiated, waiting for completion...\n");
+	printf("Bearer/Status/Channel:\n");
+	while (num_bearers--) {
+		return_code = rtrmnet_get_ll_ack(hndl, &ll_ack, error_number);
+		if (return_code != RMNETCTL_SUCCESS)
+			return return_code;
+
+		printf("%u | %u (%s) | %u (%s)\n",
+		       ll_ack.bearer_id,
+		       ll_ack.status_code,
+		       rtrmnet_ll_status_to_text(
+				ll_ack.status_code),
+		       ll_ack.current_ch,
+		       ll_ack.current_ch ? "LL" : "Default");
+	}
+
+	return return_code;
 }
 
 /*!
@@ -501,6 +537,45 @@ static int rmnet_api_call(int argc, char *argv[])
 			return_code = rtrmnet_set_wda_freq(handle, argv[1], argv[2],
 							   _STRTOUI32(argv[3]),
 							   &error_number);
+		} else if (!strcmp(*argv, "channelswitch")) {
+			uint32_t ll_flags;
+			uint8_t *bearers;
+			int num_bearers = argc - 5;
+			int i;
+
+			_RMNETCLI_CHECKNULL(argv[1]);
+			_RMNETCLI_CHECKNULL(argv[2]);
+			_RMNETCLI_CHECKNULL(argv[3]);
+			_RMNETCLI_CHECKNULL(argv[4]);
+			/* Force at least one bearer to be provided */
+			_RMNETCLI_CHECKNULL(argv[5]);
+
+			bearers = calloc(sizeof(uint8_t), num_bearers);
+			if (!bearers) {
+				print_rmnet_api_status(RMNETCTL_INVALID_ARG,
+					RMNETCTL_CFG_FAILURE_NO_COMMAND);
+				rmnetctl_cleanup(handle);
+				return RMNETCTL_INVALID_ARG;
+			}
+
+			for (i = 0; i < num_bearers; i++)
+				bearers[i] = _STRTOUI8(argv[5 + i]);
+
+			ll_flags =  _STRTOUI32(argv[4]);
+			return_code = rtrmnet_change_bearer_channel(handle,
+								    argv[1],
+								    argv[2],
+								    _STRTOUI8(argv[3]),
+								    ll_flags,
+								    num_bearers,
+								    bearers,
+								    &error_number);
+			free(bearers);
+
+			if (return_code == RMNETCTL_SUCCESS &&
+			    (ll_flags & RMNETCTL_LL_MASK_ACK))
+				return_code = rmnet_ll_wait_status(
+					handle, num_bearers, &error_number);
 		}
 
 
