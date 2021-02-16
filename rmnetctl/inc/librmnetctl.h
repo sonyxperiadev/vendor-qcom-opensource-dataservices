@@ -680,6 +680,31 @@ int rtrmnet_set_uplink_aggregation_params(rmnetctl_hndl_t *hndl,
 					  uint8_t features,
 					  uint16_t *error_code);
 
+/* @brief Public API to configure the uplink aggregation parameters
+ * used by the RmNet driver for the Low Latency channel
+ * @details Message type is RMN_NEWLINK
+ * @param hndl RmNet handle for the Netlink message
+ * @param devname Name of device node is connected to
+ * @param vndname Name of virtual device
+ * @param packet_count Maximum number of packets to aggregate
+ * @param byte_count Maximum number of bytes to aggregate
+ * @param time_limit Maximum time to aggregate
+ * @param error_code Status code of this operation returned from the kernel
+ * @return RMNETCTL_SUCCESS if successful
+ * @return RMENTCTL_LIB_ERR if there was a library error. Check error_code
+ * @return RMNETCTL_KERNEL_ERR if there was an error in the kernel.
+ * Check error_code
+ * @return RMNETCTL_INVALID_ARG if invalid arguments were passed to the API
+ */
+int rtrmnet_set_ll_uplink_aggregation_params(rmnetctl_hndl_t *hndl,
+					     char *devname,
+					     char *vndname,
+					     uint8_t packet_count,
+					     uint16_t byte_count,
+					     uint32_t time_limit,
+					     uint8_t features,
+					     uint16_t *error_code);
+
 int rtrmnet_activate_flow(rmnetctl_hndl_t *hndl,
 			  char *devname,
 			  char *vndname,

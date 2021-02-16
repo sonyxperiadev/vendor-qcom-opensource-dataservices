@@ -104,6 +104,13 @@ struct rmnetctl_uplink_params {
 	uint32_t time_limit;
 };
 
+/* Uplink Aggregation contexts for the RT RmNet driver */
+enum {
+	RMNETCTL_DEFAULT_UL_AGG_STATE,
+	RMNETCTL_LL_UL_AGG_STATE,
+	RMNETCTL_MAX_UL_AGG_STATE,
+};
+
 /* IFLA Attributes for the RT RmNet driver */
 enum {
 	RMNETCTL_IFLA_UNSPEC,
@@ -111,6 +118,7 @@ enum {
 	RMNETCTL_IFLA_FLAGS,
 	RMNETCTL_IFLA_DFC_QOS,
 	RMNETCTL_IFLA_UPLINK_PARAMS,
+	RMNETCTL_IFLA_UPLINK_STATE_ID,
 	__RMNETCTL_IFLA_MAX,
 };
 
@@ -1069,6 +1077,20 @@ static int rta_put(struct nlmsg *req, size_t *reqsize, int type, int len,
 	return RMNETCTL_SUCCESS;
 }
 
+/* @brief Add an RTA to the Netlink message with a u8 data
+ * @param *req The Netlink message
+ * @param *reqsize The remainins space within the Netlink message
+ * @param type The type of the RTA to add
+ * @param data The data of the RTA
+ * @rteturn RMNETCTL_LIB_ERR if there is not enough space to add the RTA
+ * @return RMNETCTL_SUCCESS if we added the RTA successfully
+ */
+static int rta_put_u8(struct nlmsg *req, size_t *reqsize, int type,
+		      uint8_t data)
+{
+	return rta_put(req, reqsize, type, sizeof(data), &data);
+}
+
 /* @brief Add an RTA to the Netlink message with a u16 data
  * @param *req The Netlink message
  * @param *reqsize The remainins space within the Netlink message
@@ -1214,6 +1236,74 @@ static int rmnet_fill_newlink_msg(struct nlmsg *req, size_t *reqsize,
 		if (rc != RMNETCTL_SUCCESS)
 			return rc;
 	}
+
+	rta_nested_end(req, datainfo);
+	rta_nested_end(req, linkinfo);
+
+	return RMNETCTL_SUCCESS;
+}
+
+/* @brief Fill a Netlink messages with the necessary common RTAs for creating a
+ * RTM_NEWLINK message that configures the uplink aggregation parameters
+ * @param *req The netlink message
+ * @param *reqsize The remaining space within the Netlink message
+ * @param devindex The ifindex of the physical device
+ * @param *vndname The name of the rmnet device
+ * @param packet_count The max packet count
+ * @param byte_count The max byte count
+ * @param time_limit The max time limit
+ * @param features The enabled aggregatin features
+ * @param state_id The aggregation state to configure
+ * @param flagconfig The dataformat flags for the rmnet device
+ * @return RMNETCTL_LIB_ERR if there is not enough space to add all RTAs
+ * @return RMNETCTL_SUCCESS if everything was added successfully
+ */
+static int rmnet_fill_ul_agg_msg(struct nlmsg *req, size_t *reqsize,
+				 unsigned int devindex, char *vndname,
+				 uint8_t packet_count, uint16_t byte_count,
+				 uint32_t time_limit, uint8_t features,
+				 uint8_t state_id)
+{
+	struct rmnetctl_uplink_params uplink_params;
+	struct rtattr *linkinfo, *datainfo;
+	int rc;
+
+	memset(&uplink_params, 0, sizeof(uplink_params));
+
+	/* Set up link attr with devindex as data */
+	rc = rta_put_u32(req, reqsize, IFLA_LINK, devindex);
+	if (rc != RMNETCTL_SUCCESS)
+		return rc;
+
+	rc = rta_put_string(req, reqsize, IFLA_IFNAME, vndname);
+	if (rc != RMNETCTL_SUCCESS)
+		return rc;
+
+	/* Set up IFLA info kind RMNET that has linkinfo and type */
+	rc = rta_nested_start(req, reqsize, IFLA_LINKINFO, &linkinfo);
+	if (rc != RMNETCTL_SUCCESS)
+		return rc;
+
+	rc = rta_put_string(req, reqsize, IFLA_INFO_KIND, "rmnet");
+	if (rc != RMNETCTL_SUCCESS)
+		return rc;
+
+	rc = rta_nested_start(req, reqsize, IFLA_INFO_DATA, &datainfo);
+	if (rc != RMNETCTL_SUCCESS)
+		return rc;
+
+	uplink_params.byte_count = byte_count;
+	uplink_params.packet_count = packet_count;
+	uplink_params.features = features;
+	uplink_params.time_limit = time_limit;
+	rc = rta_put(req, reqsize, RMNETCTL_IFLA_UPLINK_PARAMS,
+		     sizeof(uplink_params), &uplink_params);
+	if (rc != RMNETCTL_SUCCESS)
+		return rc;
+
+	rc = rta_put_u8(req, reqsize, RMNETCTL_IFLA_UPLINK_STATE_ID, state_id);
+	if (rc != RMNETCTL_SUCCESS)
+		return rc;
 
 	rta_nested_end(req, datainfo);
 	rta_nested_end(req, linkinfo);
@@ -1681,14 +1771,11 @@ int rtrmnet_set_uplink_aggregation_params(rmnetctl_hndl_t *hndl,
 					  uint16_t *error_code)
 {
 	struct nlmsg req;
-	struct rmnetctl_uplink_params uplink_params;
-	struct rtattr *linkinfo, *datainfo;
 	unsigned int devindex = 0;
 	size_t reqsize;
 	int rc;
 
 	memset(&req, 0, sizeof(req));
-	memset(&uplink_params, 0, sizeof(uplink_params));
 
 	if (!hndl || !devname || !error_code ||_rmnetctl_check_dev_name(devname) ||
 		_rmnetctl_check_dev_name(vndname))
@@ -1708,51 +1795,64 @@ int rtrmnet_set_uplink_aggregation_params(rmnetctl_hndl_t *hndl,
 		return RMNETCTL_KERNEL_ERR;
 	}
 
-	/* Set up link attr with devindex as data */
-	rc = rta_put_u32(&req, &reqsize, IFLA_LINK, devindex);
+	rc = rmnet_fill_ul_agg_msg(&req, &reqsize, devindex, vndname,
+				   packet_count, byte_count, time_limit,
+				   features, RMNETCTL_DEFAULT_UL_AGG_STATE);
 	if (rc != RMNETCTL_SUCCESS) {
 		*error_code = RMNETCTL_API_ERR_RTA_FAILURE;
 		return rc;
 	}
 
-	rc = rta_put_string(&req, &reqsize, IFLA_IFNAME, vndname);
+	if (send(hndl->netlink_fd, &req, req.nl_addr.nlmsg_len, 0) < 0) {
+		*error_code = RMNETCTL_API_ERR_MESSAGE_SEND;
+		return RMNETCTL_LIB_ERR;
+	}
+
+	return rmnet_get_ack(hndl, error_code);
+
+}
+
+int rtrmnet_set_ll_uplink_aggregation_params(rmnetctl_hndl_t *hndl,
+					     char *devname,
+					     char *vndname,
+					     uint8_t packet_count,
+					     uint16_t byte_count,
+					     uint32_t time_limit,
+					     uint8_t features,
+					     uint16_t *error_code)
+{
+	struct nlmsg req;
+	unsigned int devindex = 0;
+	size_t reqsize;
+	int rc;
+
+	memset(&req, 0, sizeof(req));
+
+	if (!hndl || !devname || !error_code ||_rmnetctl_check_dev_name(devname) ||
+		_rmnetctl_check_dev_name(vndname))
+		return RMNETCTL_INVALID_ARG;
+
+	reqsize = NLMSG_DATA_SIZE - sizeof(struct rtattr);
+	req.nl_addr.nlmsg_type = RTM_NEWLINK;
+	req.nl_addr.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
+	req.nl_addr.nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
+	req.nl_addr.nlmsg_seq = hndl->transaction_id;
+	hndl->transaction_id++;
+
+	/* Get index of devname*/
+	devindex = if_nametoindex(devname);
+	if (devindex == 0) {
+		*error_code = errno;
+		return RMNETCTL_KERNEL_ERR;
+	}
+
+	rc = rmnet_fill_ul_agg_msg(&req, &reqsize, devindex, vndname,
+				   packet_count, byte_count, time_limit,
+				   features, RMNETCTL_LL_UL_AGG_STATE);
 	if (rc != RMNETCTL_SUCCESS) {
 		*error_code = RMNETCTL_API_ERR_RTA_FAILURE;
 		return rc;
 	}
-
-	/* Set up IFLA info kind RMNET that has linkinfo and type */
-	rc = rta_nested_start(&req, &reqsize, IFLA_LINKINFO, &linkinfo);
-	if (rc != RMNETCTL_SUCCESS) {
-		*error_code = RMNETCTL_API_ERR_RTA_FAILURE;
-		return rc;
-	}
-
-	rc = rta_put_string(&req, &reqsize, IFLA_INFO_KIND, "rmnet");
-	if (rc != RMNETCTL_SUCCESS) {
-		*error_code = RMNETCTL_API_ERR_RTA_FAILURE;
-		return rc;
-	}
-
-	rc = rta_nested_start(&req, &reqsize, IFLA_INFO_DATA, &datainfo);
-	if (rc != RMNETCTL_SUCCESS) {
-		*error_code = RMNETCTL_API_ERR_RTA_FAILURE;
-		return rc;
-	}
-
-	uplink_params.byte_count = byte_count;
-	uplink_params.packet_count = packet_count;
-	uplink_params.features = features;
-	uplink_params.time_limit = time_limit;
-	rc = rta_put(&req, &reqsize, RMNETCTL_IFLA_UPLINK_PARAMS,
-		     sizeof(uplink_params), &uplink_params);
-	if (rc != RMNETCTL_SUCCESS) {
-		*error_code = RMNETCTL_API_ERR_RTA_FAILURE;
-		return rc;
-	}
-
-	rta_nested_end(&req, datainfo);
-	rta_nested_end(&req, linkinfo);
 
 	if (send(hndl->netlink_fd, &req, req.nl_addr.nlmsg_len, 0) < 0) {
 		*error_code = RMNETCTL_API_ERR_MESSAGE_SEND;

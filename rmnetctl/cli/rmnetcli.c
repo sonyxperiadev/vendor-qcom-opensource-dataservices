@@ -229,6 +229,12 @@ static void rmnet_api_usage(void)
 	printf(_2TABS" <byte count>            int - maximum byte count");
 	printf(_2TABS" <time limit>            int - maximum time limit");
 	printf(_2TABS" <features>              int - aggregation features\n\n");
+	printf("rmnetcli -n lluplinkparam <dev_name>   set LL uplink aggregation parameters");
+	printf(_2TABS" <vnd id>                string - vnd device_name");
+	printf(_2TABS" <packet count>          int - maximum packet count");
+	printf(_2TABS" <byte count>            int - maximum byte count");
+	printf(_2TABS" <time limit>            int - maximum time limit");
+	printf(_2TABS" <features>              int - aggregation features\n\n");
 	printf("rmnetcli -n flowactivate <real dev>  activate a flow\n");
 	printf(_2TABS" <vnd_name>              string - vnd device name\n\n");
 	printf(_2TABS" <bearer_id>             int - bearer id\n\n");
@@ -453,6 +459,18 @@ static int rmnet_api_call(int argc, char *argv[])
 			_RMNETCLI_CHECKNULL(argv[6]);
 
 			return_code = rtrmnet_set_uplink_aggregation_params(
+				handle, argv[1], argv[2], _STRTOUI8(argv[3]),
+				_STRTOUI16(argv[4]), _STRTOUI32(argv[5]),
+				_STRTOUI8(argv[6]), &error_number);
+		} else if (!strcmp(*argv, "lluplinkparam")) {
+			_RMNETCLI_CHECKNULL(argv[1]);
+			_RMNETCLI_CHECKNULL(argv[2]);
+			_RMNETCLI_CHECKNULL(argv[3]);
+			_RMNETCLI_CHECKNULL(argv[4]);
+			_RMNETCLI_CHECKNULL(argv[5]);
+			_RMNETCLI_CHECKNULL(argv[6]);
+
+			return_code = rtrmnet_set_ll_uplink_aggregation_params(
 				handle, argv[1], argv[2], _STRTOUI8(argv[3]),
 				_STRTOUI16(argv[4]), _STRTOUI32(argv[5]),
 				_STRTOUI8(argv[6]), &error_number);
