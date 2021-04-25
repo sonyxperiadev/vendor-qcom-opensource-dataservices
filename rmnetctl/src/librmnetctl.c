@@ -1301,9 +1301,12 @@ static int rmnet_fill_ul_agg_msg(struct nlmsg *req, size_t *reqsize,
 	if (rc != RMNETCTL_SUCCESS)
 		return rc;
 
-	rc = rta_put_u8(req, reqsize, RMNETCTL_IFLA_UPLINK_STATE_ID, state_id);
-	if (rc != RMNETCTL_SUCCESS)
-		return rc;
+	if (state_id != RMNETCTL_DEFAULT_UL_AGG_STATE) {
+		rc = rta_put_u8(req, reqsize, RMNETCTL_IFLA_UPLINK_STATE_ID,
+				state_id);
+		if (rc != RMNETCTL_SUCCESS)
+			return rc;
+	}
 
 	rta_nested_end(req, datainfo);
 	rta_nested_end(req, linkinfo);
